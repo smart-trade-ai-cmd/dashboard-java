@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Trade AI - Dual Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 1100px; }
+
+        /* התחברות */
+        #auth_view { display: flex; flex-direction: column; align-items: center; gap: 30px; margin-top: 50px; }
+        .hero-stats { background: linear-gradient(135deg, #1e3c72, #2a5298); padding: 30px; border-radius: 15px; text-align: center; width: 100%; max-width: 500px; }
+        .global-accuracy { font-size: 48px; font-weight: 900; color: #00e676; }
+        .auth-box { background-color: #1e1e1e; padding: 30px; border-radius: 15px; width: 100%; max-width: 400px; }
+        .form-group input { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #444; background-color: #2a2a2a; color: white; box-sizing: border-box; outline: none;}
+        button.primary-btn { width: 100%; padding: 12px; background-color: #4da6ff; color: #121212; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s;}
+        button.primary-btn:hover { background-color: #3385ff; }
+        .toggle-auth { text-align: center; margin-top: 15px; color: #888; cursor: pointer; }
+
+        /* אודות הפרויקט */
+        .about-us-box {
+            background-color: #1e1e1e;
+            padding: 30px 40px;
+            border-radius: 15px;
+            border: 1px solid #333;
+            max-width: 800px;
+            text-align: center;
+            line-height: 1.8;
+            color: #aaa;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-size: 15px;
+        }
+        .about-us-box h2 {
+            color: #4da6ff;
+            margin-top: 0;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .about-us-box p {
+            margin-bottom: 15px;
+        }
+
+        /* ניווט ומעטפת האפליקציה */
+        #app_layout { display: none; flex-direction: column; gap: 20px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; background-color: #1e1e1e; padding: 15px 25px; border-radius: 10px; border-bottom: 3px solid #333;}
+        .nav-buttons { display: flex; gap: 15px; }
+        .nav-btn { background-color: #2a2a2a; color: white; border: 1px solid #444; padding: 8px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+        .nav-btn.active { background-color: #4da6ff; color: #121212; border-color: #4da6ff;}
+        .nav-btn:hover:not(.active) { background-color: #3a3a3a; }
+
+        /* אזור הדשבורד */
+        .search-panels-wrapper { display: flex; gap: 20px; margin-bottom: 10px; }
+        .search-box { flex: 1; background-color: #1e1e1e; padding: 20px; border-radius: 10px; border-top: 4px solid #444; }
+        .search-box.stock-search { border-top-color: #ffb300; }
+        .search-box.ai-search { border-top-color: #4da6ff; }
+
+        .search-input-group { display: flex; gap: 10px; margin-top: 10px; position: relative;}
+        .search-input-group input { flex: 1; padding: 12px; border-radius: 5px; border: 1px solid #444; background-color: #2a2a2a; color: white; outline: none; font-size: 15px;}
+        .search-input-group button { padding: 0 20px; background-color: #444; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        .search-input-group button:hover { background-color: #555; }
+
+        /* רשימות נפתחות לחיפוש */
+        .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background-color: #2a2a2a; border: 1px solid #444; border-radius: 5px; margin-top: 5px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 100%;}
+        .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #333;}
+        .dropdown-item:hover { background-color: #3a3a3a; color: #4da6ff; }
+
+        .workspace { display: flex; gap: 20px; align-items: flex-start;}
+        .sidebar { width: 250px; background-color: #1e1e1e; padding: 15px; border-radius: 10px; min-height: 400px;}
+        .watchlist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid #333; cursor: pointer; border-radius: 5px;}
+        .watchlist-item:hover { background-color: #2a2a2a; }
+        .delete-btn { color: #ff5252; background: none; border: none; cursor: pointer; font-size: 14px; padding: 5px;}
+
+        .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        .dashboard-card { background-color: #1e1e1e; padding: 25px; border-radius: 10px; text-align: center; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px;}
+
+        .data-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin: 20px 0; transition: 0.3s; }
+        .data-box { background-color: #252525; padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        .chart-container { position: relative; height: 300px; width: 100%; margin-top: 15px; }
+
+        table { width: 100%; border-collapse: collapse; text-align: right; }
+        th, td { padding: 12px; border-bottom: 1px solid #333; font-size: 14px;}
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .status-PENDING { background-color: #444; color: #aaa; }
+        .status-CORRECT { background-color: rgba(0, 200, 83, 0.2); color: #00e676; }
+        .status-WRONG { background-color: rgba(213, 0, 0, 0.2); color: #ff5252; }
+
+        /* ================= דף ספריית מניות ================= */
+        #directory_page { display: none; flex-direction: column; gap: 20px; }
+        .dir-header { background-color: #1e1e1e; padding: 30px; border-radius: 10px; text-align: center;}
+        .dir-search-input { width: 100%; max-width: 600px; padding: 15px; border-radius: 30px; border: 2px solid #ffb300; background-color: #2a2a2a; color: white; font-size: 18px; outline: none; text-align: center;}
+
+        .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .stock-card { background-color: #1e1e1e; padding: 20px; border-radius: 10px; border: 1px solid #333; cursor: pointer; transition: 0.2s; text-align: center;}
+        .stock-card:hover { transform: translateY(-5px); border-color: #ffb300; background-color: #252525;}
+        .stock-symbol { font-size: 24px; font-weight: bold; color: #ffb300; margin-bottom: 5px;}
+        .stock-name { font-size: 14px; color: #aaa;}
+    </style>
+</head>
+<body>
+
+
+<div class="container">
+    <div id="auth_view">
+        <div class="hero-stats">
+            <h1>Smart Trade AI</h1>
+            <div>אחוז דיוק המודל:</div><div class="global-accuracy">85%</div>
+        </div>
+        <div class="auth-box">
+            <h2 id="auth_title">התחברות</h2>
+            <div class="form-group" id="group_email" style="display: none;"><label>אימייל</label><input type="email" id="auth_email"></div>
+            <div class="form-group"><label>שם משתמש</label><input type="text" id="auth_username"></div>
+            <div class="form-group"><label>סיסמה</label><input type="password" id="auth_password"></div>
+            <button class="primary-btn" onclick="handleAuth()" id="auth_submit_btn">התחבר</button>
+            <div class="toggle-auth" onclick="toggleAuthMode()" id="auth_toggle_txt">אין חשבון? הירשם</div>
+        </div>
+
+        <div class="about-us-box">
+            <h2>אודות Smart Trade AI</h2>
+            <p>ברוכים הבאים ל-Smart Trade AI, פלטפורמת מסחר וניתוח נתונים מתקדמת שנועדה לגשר בין עולם ההשקעות המסורתי לחזית הטכנולוגיה של הבינה המלאכותית. בעידן שבו השווקים הפיננסיים נעים במהירות שיא, קבלת החלטות מבוססות רגש עלולה לעלות ביוקר. המטרה שלנו היא לספק לכם כלים אנליטיים חכמים שיעזרו לכם לנהל סיכונים ולזהות מגמות בצורה מושכלת.</p>
+
+            <p>המערכת משלבת מודל למידת מכונה (Deep Learning - LSTM) שאומן על נתונים היסטוריים כדי לחזות את מגמת המחיר הבאה של נכסי קריפטו, לצד מעקב וניתוח מניות גלובליות בזמן אמת. בנוסף, המערכת מציעה סביבת עבודה מלאה הכוללת צפייה בגרפים, ניהול רשימות מעקב אישיות, ומערכת התראות חכמה ששולחת עדכונים ישירות למייל שלכם כשהשוק מגיע ליעד שהגדרתם.</p>
+
+            <p>פרויקט זה פותח על ידי עמיחי מרקוס כפרויקט גמר בלימודי הנדסאי תוכנה. המערכת מדגימה ארכיטקטורת ענן מודרנית ומורכבת הכוללת שרת מתווך מרכזי (Java Spring Boot), שרת בינה מלאכותית עצמאי (Python), מסד נתונים מאובטח, וממשק משתמש דינאמי ומתקדם.</p>
+        </div>
+    </div>
+
+    <div id="app_layout">
+
+        <div class="top-bar">
+            <div style="display: flex; align-items: center; gap: 30px;">
+                <div style="font-size: 18px;">שלום, <span id="display_username" style="color:#4da6ff; font-weight:bold;"></span> 👋</div>
+                <div class="nav-buttons">
+                    <button id="nav_dashboard" class="nav-btn active" onclick="switchPage('dashboard')">דשבורד ראשי</button>
+                    <button id="nav_directory" class="nav-btn" onclick="switchPage('directory')">ספריית מניות (A-Z)</button>
+                </div>
+            </div>
+            <button onclick="logout()" style="background:none; border:1px solid #ff5252; color:#ff5252; padding:5px 15px; border-radius:5px; cursor:pointer;">התנתק</button>
+        </div>
+
+        <div id="dashboard_page" style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="search-panels-wrapper">
+                <div class="search-box stock-search">
+                    <h3 style="margin:0 0 5px 0; color:#ffb300;">חיפוש מניה מהיר</h3>
+                    <div class="search-input-group">
+                        <input type="text" id="live_stock_input" placeholder="לדוגמה: Intel או INTC" onfocus="toggleStockDropdown(true)" oninput="filterStockDropdown()">
+                        <button onclick="fetchLiveStockFromInput()">הצג גרף</button>
+                        <div id="stock_dropdown_list" class="dropdown-list"></div>
+                    </div>
+                </div>
+
+                <div class="search-box ai-search">
+                    <h3 style="margin:0 0 5px 0; color:#4da6ff;">חיפוש נכסי AI (MySQL)</h3>
+                    <div class="search-input-group">
+                        <input type="text" id="ai_asset_input" placeholder="לדוגמה: BTC, ETH" onfocus="toggleAiDropdown(true)" oninput="filterAiDropdown()">
+                        <div id="ai_dropdown_list" class="dropdown-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="workspace">
+                <div class="sidebar">
+                    <h3 style="margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px;">רשימת המעקב (AI)</h3>
+                    <div id="watchlist_items" style="color: #888; font-size: 14px;">טוען רשימה...</div>
+                </div>
+
+                <div class="main-content">
+                    <div class="dashboard-card" id="welcome_card">
+                        <h2>ברוך הבא לדשבורד</h2>
+                        <p style="color: #aaa;">בחר מניה לניתוח מהיר, או נכס AI מימין.</p>
+                    </div>
+
+                    <div id="stock_view" style="display: none;">
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div>
+                                    <h2 id="stock_title" style="color:#ffb300; display: inline-block; margin: 0;">--</h2>
+                                    <span id="stock_full_name" style="color: #888; margin-right: 10px; font-size: 16px;"></span>
+                                </div>
+                                <span style="background-color:rgba(255,179,0,0.2); color:#ffb300; padding:5px 10px; border-radius:5px; font-size:12px;">🔴 נתונים זמניים</span>
+                            </div>
+                            <div id="stock_loading" style="display:none; color:#888; padding:20px;">מושך נתונים...</div>
+                            <div class="chart-container"><canvas id="stockChart"></canvas></div>
+
+                            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #333; text-align: right;">
+                                <h4 style="margin: 0 0 10px 0; color: #ffb300;">🔔 הגדרת התראת מחיר למניה זו</h4>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <span style="font-size: 14px; color: #aaa;">התרע לי כאשר המחיר הוא</span>
+                                    <select id="alert_criteria_stock" style="padding: 8px; border-radius: 5px; background-color: #2a2a2a; color: white; border: 1px solid #444;">
+                                        <option value="ABOVE">מעל (⬆)</option>
+                                        <option value="BELOW">מתחת (⬇)</option>
+                                    </select>
+                                    <input type="number" id="alert_target_price_stock" placeholder="מחיר יעד ב-$" style="width: 150px; padding: 8px; border-radius: 5px; background-color: #2a2a2a; color: white; border: 1px solid #444; outline: none;">
+                                    <button class="primary-btn" style="width: auto; padding: 8px 20px; background-color: #ffb300; color: #121212;" onclick="setStockPriceAlert()">צור התראה</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="ai_view" style="display: none;">
+                        <div class="dashboard-card" id="prediction_card">
+                            <div class="card-header">
+                                <h2 id="asset_title" style="color:#4da6ff;">--</h2>
+                                <button id="add_to_watchlist_btn" class="primary-btn" style="width:auto; padding:8px 15px; display:none; background-color:#4da6ff; color:#121212;" onclick="addCurrentToWatchlist()">הוסף לרשימת המעקב +</button>
+                            </div>
+                            <div class="data-grid" id="main_data_grid">
+                                <div class="data-box" id="box_current_price">מחיר נוכחי<br><strong id="current_price" style="font-size:24px;">--</strong></div>
+                                <div class="data-box" id="box_predicted_price" style="display: none;">תחזית AI<br><strong id="predicted_price" style="font-size:24px;">--</strong></div>
+                                <div class="data-box" id="box_recommended_action" style="display: none;">המלצה<br><strong id="recommended_action" style="font-size:24px;">--</strong></div>
+                            </div>
+                            <button id="btn_generate" class="primary-btn" style="width:auto; padding:10px 30px;" onclick="generatePrediction()">הפעל חיזוי AI 🚀</button>
+
+                            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #333; text-align: right;">
+                                <h4 style="margin: 0 0 10px 0; color: #4da6ff;">🔔 הגדרת התראת מחיר חכמה</h4>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <span style="font-size: 14px; color: #aaa;">התרע לי כאשר המחיר הוא</span>
+                                    <select id="alert_criteria" style="padding: 8px; border-radius: 5px; background-color: #2a2a2a; color: white; border: 1px solid #444;">
+                                        <option value="ABOVE">מעל (⬆)</option>
+                                        <option value="BELOW">מתחת (⬇)</option>
+                                    </select>
+                                    <input type="number" id="alert_target_price" placeholder="מחיר יעד ב-$" style="width: 150px; padding: 8px; border-radius: 5px; background-color: #2a2a2a; color: white; border: 1px solid #444; outline: none;">
+                                    <button class="primary-btn" style="width: auto; padding: 8px 20px;" onclick="setPriceAlert()">צור התראה</button>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="dashboard-card" id="chart_card">
+                            <div class="card-header">
+                                <h3 style="margin:0; color:#aaa;">התנהגות מחיר ותחזיות</h3>
+                                <div style="background-color:#252525; padding:5px 15px; border-radius:5px; border:1px solid #444; font-size: 14px;">
+                                    אחוז הצלחה במטבע זה: <span id="asset_accuracy" style="color:#00e676; font-weight:bold;">--%</span>
+                                </div>
+                            </div>
+                            <div class="chart-container"><canvas id="aiChart"></canvas></div>
+                        </div>
+
+                        <div class="dashboard-card" id="history_card">
+                            <h3 style="text-align:right; margin-top:0; color:#aaa;">היסטוריית תחזיות (MySQL)</h3>
+                            <table>
+                                <thead><tr><th>זמן</th><th>מחיר כניסה</th><th>מחיר חזוי</th><th>כיוון</th><th>סטטוס</th></tr></thead>
+                                <tbody id="history_table_body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="directory_page">
+            <div class="dir-header">
+                <h1 style="color: #ffb300; margin-top: 0;">ספריית מניות גלובלית</h1>
+                <p style="color: #aaa; margin-bottom: 20px;">חפש לפי סימול (ABC) או לפי שם החברה המלא (למשל: Ford)</p>
+                <input type="text" id="dir_search" class="dir-search-input" placeholder="הקלד שם או סימול לחיפוש..." oninput="filterDirectory()">
+            </div>
+            <div class="stock-grid" id="directory_grid"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+        const API_BASE = "https://backend-vojg.onrender.com/api";
+        let isLoginMode = true;
+        let currentUser = null;
+        let currentAsset = null;
+        let userWatchlistSymbols = [];
+        let aiChartInstance = null;
+        let stockChartInstance = null;
+
+        const availableAiAssets = [
+            { code: "BTC", name: "Bitcoin (BTC)" },
+            { code: "ETH", name: "Ethereum (ETH)" }
+        ];
+
+        const globalStocks = [
+            { symbol: "AAPL", name: "Apple Inc." },
+            { symbol: "MSFT", name: "Microsoft Corporation" },
+            { symbol: "GOOGL", name: "Alphabet Inc. (Google)" },
+            { symbol: "AMZN", name: "Amazon.com Inc." },
+            { symbol: "META", name: "Meta Platforms (Facebook)" },
+            { symbol: "TSLA", name: "Tesla Inc." },
+            { symbol: "NVDA", name: "NVIDIA Corporation" },
+            { symbol: "F", name: "Ford Motor Company" },
+            { symbol: "GM", name: "General Motors" },
+            { symbol: "DIS", name: "The Walt Disney Company" },
+            { symbol: "NFLX", name: "Netflix Inc." },
+            { symbol: "JPM", name: "JPMorgan Chase & Co." },
+            { symbol: "V", name: "Visa Inc." },
+            { symbol: "WMT", name: "Walmart Inc." },
+            { symbol: "JNJ", name: "Johnson & Johnson" },
+            { symbol: "INTC", name: "Intel Corporation" },
+            { symbol: "AMD", name: "Advanced Micro Devices" },
+            { symbol: "BA", name: "Boeing Company" },
+            { symbol: "KO", name: "Coca-Cola Company" },
+            { symbol: "PEP", name: "PepsiCo Inc." },
+            { symbol: "NKE", name: "NIKE Inc." },
+            { symbol: "TEVA", name: "Teva Pharmaceutical" },
+            { symbol: "WIX", name: "Wix.com Ltd." }
+        ];
+
+        // --- התחברות ---
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('group_email').style.display = isLoginMode ? 'none' : 'block';
+            document.getElementById('auth_title').innerText = isLoginMode ? 'התחברות' : 'הרשמה';
+            document.getElementById('auth_submit_btn').innerText = isLoginMode ? 'התחבר' : 'הרשמה';
+            document.getElementById('auth_toggle_txt').innerText = isLoginMode ? 'אין חשבון? הירשם' : 'יש חשבון? התחבר';
+        }
+
+        async function handleAuth() {
+            const username = document.getElementById('auth_username').value;
+            const password = document.getElementById('auth_password').value;
+            const email = document.getElementById('auth_email').value;
+
+            try {
+                let url = isLoginMode ? `${API_BASE}/users/login?username=${username}&password=${password}` : `${API_BASE}/users/register`;
+                let options = isLoginMode ? { method: 'POST' } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, email, password }) };
+
+                const response = await fetch(url, options);
+                if (response.ok) {
+                    currentUser = await response.json();
+
+                    localStorage.setItem('smartTradeUser', JSON.stringify(currentUser));
+
+                    document.getElementById('auth_view').style.display = 'none';
+                    document.getElementById('app_layout').style.display = 'flex';
+                    switchPage('dashboard');
+                    document.getElementById('display_username').innerText = currentUser.username;
+
+                    initAiDropdown();
+                    initStockDropdown();
+                    loadWatchlist();
+                    renderDirectory(globalStocks);
+                } else { alert(await response.text()); }
+            } catch (err) { alert("שגיאת תקשורת עם שרת ה-Java"); }
+        }
+
+        function logout() {
+            localStorage.removeItem('smartTradeUser');
+            location.reload();
+        }
+
+        function switchPage(page) {
+            document.getElementById('dashboard_page').style.display = page === 'dashboard' ? 'flex' : 'none';
+            document.getElementById('directory_page').style.display = page === 'directory' ? 'flex' : 'none';
+            document.getElementById('nav_dashboard').className = page === 'dashboard' ? 'nav-btn active' : 'nav-btn';
+            document.getElementById('nav_directory').className = page === 'directory' ? 'nav-btn active' : 'nav-btn';
+        }
+
+        // ==========================================
+        // מערכת מניות (Alpha Vantage)
+        // ==========================================
+        function initStockDropdown() {
+            const list = document.getElementById('stock_dropdown_list');
+            list.innerHTML = '';
+            globalStocks.forEach(stock => {
+                const div = document.createElement('div');
+                div.className = 'dropdown-item';
+                div.innerText = `${stock.name} (${stock.symbol})`;
+                div.onclick = () => selectStockFromSearch(stock.symbol, stock.name);
+                list.appendChild(div);
+            });
+        }
+
+        function toggleStockDropdown(show) { document.getElementById('stock_dropdown_list').style.display = show ? 'block' : 'none'; }
+
+        function filterStockDropdown() {
+            const input = document.getElementById('live_stock_input').value.toUpperCase();
+            const items = document.querySelectorAll('#stock_dropdown_list .dropdown-item');
+            items.forEach(item => { item.style.display = item.innerText.toUpperCase().includes(input) ? "block" : "none"; });
+        }
+
+        function selectStockFromSearch(symbol, name) {
+            document.getElementById('live_stock_input').value = symbol;
+            toggleStockDropdown(false);
+            fetchLiveStock(symbol, name);
+        }
+
+        function renderDirectory(stocksToRender) {
+            const grid = document.getElementById('directory_grid');
+            grid.innerHTML = '';
+            if (stocksToRender.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #888; padding: 40px;">לא נמצאו מניות.</div>';
+                return;
+            }
+            stocksToRender.forEach(stock => {
+                const card = document.createElement('div');
+                card.className = 'stock-card';
+                card.onclick = () => { switchPage('dashboard'); fetchLiveStock(stock.symbol, stock.name); };
+                card.innerHTML = `<div class="stock-symbol">${stock.symbol}</div><div class="stock-name">${stock.name}</div>`;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterDirectory() {
+            const query = document.getElementById('dir_search').value.toLowerCase();
+            const filtered = globalStocks.filter(s => s.symbol.toLowerCase().includes(query) || s.name.toLowerCase().includes(query));
+            renderDirectory(filtered);
+        }
+
+        function fetchLiveStockFromInput() {
+            const inputVal = document.getElementById('live_stock_input').value.toUpperCase().trim();
+            if(!inputVal) return;
+            let targetSymbol = inputVal;
+            let targetName = "Company";
+            const foundStock = globalStocks.find(s => s.symbol.toUpperCase() === inputVal || s.name.toUpperCase().includes(inputVal));
+            if (foundStock) { targetSymbol = foundStock.symbol; targetName = foundStock.name; }
+            fetchLiveStock(targetSymbol, targetName);
+        }
+
+        async function fetchLiveStock(symbol, name = "") {
+            currentAsset = symbol; // <--- הוסף את השורה הזו!
+
+            document.getElementById('live_stock_input').value = symbol;
+            document.getElementById('welcome_card').style.display = 'none';
+            document.getElementById('ai_view').style.display = 'none';
+            document.getElementById('stock_view').style.display = 'block';
+
+            document.getElementById('stock_title').innerText = symbol;
+            document.getElementById('stock_full_name').innerText = name;
+            document.getElementById('stock_loading').style.display = 'block';
+            document.getElementById('stock_loading').innerText = "מושך נתונים מ-Alpha Vantage...";
+
+            if (stockChartInstance) { stockChartInstance.destroy(); }
+
+            try {
+                const apiKey = "QQB1978B04H5W0YX";
+                const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data["Time Series (Daily)"]) {
+                    const timeSeries = data["Time Series (Daily)"];
+                    const allDates = Object.keys(timeSeries).slice(0, 30).reverse();
+
+                    const labels = allDates.map(date => {
+                        const d = new Date(date);
+                        return `${d.getDate()}/${d.getMonth() + 1}`;
+                    });
+
+                    const prices = allDates.map(date => parseFloat(timeSeries[date]["4. close"]));
+
+                    document.getElementById('stock_loading').style.display = 'none';
+                    renderStockChart(labels, prices, symbol);
+                }
+                else if (data["Information"] || data["Note"]) {
+                    throw new Error("API Limit Reached");
+                }
+                else {
+                    throw new Error("No data");
+                }
+            } catch (error) {
+                console.error(error);
+                if(error.message === "API Limit Reached") {
+                    document.getElementById('stock_loading').innerText = "הגעת למגבלת 25 חיפושים ביום. נסה שוב מחר!";
+                } else {
+                    document.getElementById('stock_loading').innerText = "לא נמצאו נתונים למניה זו (או שגיאת רשת).";
+                }
+            }
+        }
+
+        function renderStockChart(labels, data, symbol) {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            stockChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: [{ label: `מחיר ${symbol}`, data: data, borderColor: '#ffb300', backgroundColor: 'rgba(255, 179, 0, 0.1)', borderWidth: 2, pointRadius: 1, fill: true, tension: 0.1 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#fff' } } }, scales: { x: { grid: { color: '#333' }, ticks: { color: '#aaa' } }, y: { grid: { color: '#333' }, ticks: { color: '#aaa' } } } }
+            });
+        }
+
+        // ==========================================
+        // מערכת קריפטו AI (Binance + MySQL)
+        // ==========================================
+        function initAiDropdown() {
+            const list = document.getElementById('ai_dropdown_list');
+            list.innerHTML = '';
+            availableAiAssets.forEach(asset => {
+                const div = document.createElement('div');
+                div.className = 'dropdown-item';
+                div.innerText = asset.name;
+                div.onclick = () => selectAiFromSearch(asset.code, asset.name);
+                list.appendChild(div);
+            });
+        }
+
+        function toggleAiDropdown(show) { document.getElementById('ai_dropdown_list').style.display = show ? 'block' : 'none'; }
+
+        function filterAiDropdown() {
+            const input = document.getElementById('ai_asset_input').value.toUpperCase();
+            const items = document.querySelectorAll('#ai_dropdown_list .dropdown-item');
+            items.forEach(item => { item.style.display = item.innerText.toUpperCase().includes(input) ? "block" : "none"; });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.ai-search')) { toggleAiDropdown(false); }
+            if (!e.target.closest('.stock-search')) { toggleStockDropdown(false); }
+        });
+
+        function selectAiFromSearch(code, fullName) {
+            document.getElementById('ai_asset_input').value = fullName;
+            toggleAiDropdown(false);
+            openAiAssetView(code);
+        }
+
+        async function loadWatchlist() {
+            const response = await fetch(`${API_BASE}/watchlist/${currentUser.id}`);
+            const assets = await response.json();
+            const listDiv = document.getElementById('watchlist_items');
+            listDiv.innerHTML = '';
+            userWatchlistSymbols = assets.map(a => a.symbol.toUpperCase());
+
+            if(assets.length === 0) { listDiv.innerHTML = "הרשימה ריקה."; }
+            else {
+                assets.forEach(asset => {
+                    const item = document.createElement('div');
+                    item.className = 'watchlist-item';
+                    item.innerHTML = `<strong onclick="openAiAssetView('${asset.symbol}')">${asset.symbol}</strong><button class="delete-btn" onclick="deleteAsset('${asset.symbol}', event)">✖</button>`;
+                    listDiv.appendChild(item);
+                });
+            }
+            updateAddButtonVisibility();
+        }
+
+        async function addCurrentToWatchlist() {
+            try { await fetch(`${API_BASE}/watchlist/${currentUser.id}/add?symbol=${currentAsset}`, { method: 'POST' }); loadWatchlist(); } catch (err) {}
+        }
+
+        async function deleteAsset(symbol, event) {
+            event.stopPropagation();
+            try { await fetch(`${API_BASE}/watchlist/${currentUser.id}/remove?symbol=${symbol}`, { method: 'DELETE' }); loadWatchlist(); } catch (err) {}
+        }
+
+        function openAiAssetView(symbol) {
+            currentAsset = symbol.toUpperCase();
+            document.getElementById('welcome_card').style.display = 'none';
+            document.getElementById('stock_view').style.display = 'none';
+            document.getElementById('ai_view').style.display = 'block';
+            document.getElementById('asset_title').innerText = currentAsset;
+
+            document.getElementById('box_predicted_price').style.display = 'none';
+            document.getElementById('box_recommended_action').style.display = 'none';
+            document.getElementById('main_data_grid').style.gridTemplateColumns = '1fr';
+
+            document.getElementById('asset_accuracy').innerText = "--%";
+            document.getElementById('asset_accuracy').style.color = "#888";
+
+            updateAddButtonVisibility();
+            loadAiHistory();
+        }
+
+        function updateAddButtonVisibility() {
+            const addBtn = document.getElementById('add_to_watchlist_btn');
+            addBtn.style.display = (currentAsset && !userWatchlistSymbols.includes(currentAsset)) ? 'block' : 'none';
+        }
+
+        async function loadAiHistory() {
+            let marketLabels = [];
+            let marketPrices = [];
+
+            try {
+                const binanceSymbol = currentAsset.toUpperCase() + "USDT";
+                const binanceUrl = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=1d&limit=60`;
+
+                const res = await fetch(binanceUrl);
+                const data = await res.json();
+
+                marketLabels = data.map(candle => {
+                    const d = new Date(candle[0]);
+                    return `${d.getDate()}/${d.getMonth()+1}`;
+                });
+                marketPrices = data.map(candle => parseFloat(candle[4]));
+
+                if(marketPrices.length > 0) {
+                    document.getElementById('current_price').innerText = '$' + marketPrices[marketPrices.length - 1].toLocaleString();
+                }
+            } catch (err) {
+                console.error("שגיאה במשיכת נתוני קריפטו", err);
+            }
+
+            let aiHistory = [];
+            try {
+                const response = await fetch(`${API_BASE}/predictions/history/${currentAsset.toLowerCase()}`);
+                aiHistory = await response.json();
+
+                const tbody = document.getElementById('history_table_body');
+                tbody.innerHTML = '';
+
+                let accuracyText = "--%";
+                let accuracyColor = "#888";
+
+                if(aiHistory.length > 0) {
+                    document.getElementById('predicted_price').innerText = '$' + aiHistory[0].predictedPrice;
+                    document.getElementById('recommended_action').innerText = aiHistory[0].recommendedAction;
+                    document.getElementById('recommended_action').style.color = aiHistory[0].recommendedAction === 'BUY' ? '#00e676' : '#ff5252';
+
+                    const resolvedPredictions = aiHistory.filter(p => p.status === 'CORRECT' || p.status === 'WRONG');
+                    if (resolvedPredictions.length > 0) {
+                        const correctCount = resolvedPredictions.filter(p => p.status === 'CORRECT').length;
+                        const accuracyRate = Math.round((correctCount / resolvedPredictions.length) * 100);
+                        accuracyText = accuracyRate + "%";
+                        accuracyColor = accuracyRate >= 50 ? "#00e676" : "#ff5252";
+                    } else {
+                        accuracyText = "ממתין לתוצאות";
+                    }
+
+                } else {
+                    document.getElementById('predicted_price').innerText = '--';
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">אין היסטוריה במסד הנתונים. מפעיל AI כדי ליצור תחזית...</td></tr>`;
+                    accuracyText = "אין מידע";
+                }
+
+                document.getElementById('asset_accuracy').innerText = accuracyText;
+                document.getElementById('asset_accuracy').style.color = accuracyColor;
+
+                aiHistory.forEach(row => {
+                    const tr = document.createElement('tr');
+                    let statusHebrew = row.status === 'CORRECT' ? '🎯 צדק' : (row.status === 'WRONG' ? '❌ טעה' : 'בהמתנה');
+                    let dirText = row.trend === 'UP' ? 'BUY ⬆' : 'SELL ⬇';
+                    let dirColor = row.trend === 'UP' ? '#00e676' : '#ff5252';
+                    tr.innerHTML = `<td>${row.predictionTime.replace('T', ' ').substring(5,16)}</td><td>$${row.currentPrice}</td><td>$${row.predictedPrice}</td><td style="color:${dirColor}; font-weight:bold;">${dirText}</td><td><span class="status-badge status-${row.status}">${statusHebrew}</span></td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch(e) { console.error("שגיאה במשיכת MySQL", e); }
+
+            renderAiMarketChart(marketLabels, marketPrices);
+        }
+
+        function renderAiMarketChart(labels, prices) {
+            const ctx = document.getElementById('aiChart').getContext('2d');
+            if (aiChartInstance) aiChartInstance.destroy();
+
+            aiChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: `מחיר השוק (חודשיים אחורה)`,
+                            data: prices,
+                            borderColor: '#4da6ff',
+                            backgroundColor: 'rgba(77, 166, 255, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#fff' } } },
+                    scales: {
+                        x: { grid: { color: '#333' }, ticks: { color: '#aaa', maxTicksLimit: 15 } },
+                        y: { grid: { color: '#333' }, ticks: { color: '#aaa' } }
+                    }
+                }
+            });
+        }
+
+        async function generatePrediction() {
+            if(!currentAsset) return;
+            const btn = document.getElementById('btn_generate');
+            btn.innerText = "מפעיל מודל, אנא המתן..."; btn.disabled = true;
+            try {
+                await fetch(`${API_BASE}/predictions/${currentAsset.toLowerCase()}`);
+                await loadAiHistory();
+                document.getElementById('box_predicted_price').style.display = 'block';
+                document.getElementById('box_recommended_action').style.display = 'block';
+                document.getElementById('main_data_grid').style.gridTemplateColumns = '1fr 1fr 1fr';
+            } catch (error) { alert("שגיאה בהפעלת המודל מול MySQL."); }
+            finally { btn.innerText = "הפעל חיזוי AI 🚀"; btn.disabled = false; }
+        }
+
+        async function setStockPriceAlert() {
+            if (!currentAsset || !currentUser) return;
+
+            const criteria = document.getElementById('alert_criteria_stock').value;
+            const targetPrice = parseFloat(document.getElementById('alert_target_price_stock').value);
+
+            if (!targetPrice || targetPrice <= 0) { alert("אנא הזן מחיר יעד תקין"); return; }
+
+            const alertData = {
+                userId: currentUser.id,
+                symbol: currentAsset.toUpperCase(),
+                targetPrice: targetPrice,
+                criteria: criteria
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/alerts/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(alertData)
+                });
+
+                if (response.ok) {
+                    alert(`🎯 התראת המניה נשמרה בהצלחה! נעדכן אותך כשמחיר ${currentAsset} יגיע ליעד.`);
+                    document.getElementById('alert_target_price_stock').value = '';
+                }
+            } catch (error) { console.error(error); }
+        }
+
+        // ==========================================
+        // מנגנון התראות מחיר (Alerts)
+        // ==========================================
+        async function setPriceAlert() {
+            if (!currentAsset || !currentUser) return;
+
+            const criteria = document.getElementById('alert_criteria').value;
+            const targetPrice = parseFloat(document.getElementById('alert_target_price').value);
+
+            if (!targetPrice || targetPrice <= 0) {
+                alert("אנא הזן מחיר יעד תקין");
+                return;
+            }
+
+            const alertData = {
+                userId: currentUser.id,
+                symbol: currentAsset.toUpperCase(),
+                targetPrice: targetPrice,
+                criteria: criteria
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/alerts/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(alertData)
+                });
+
+                if (response.ok) {
+                    alert(`🎯 ההתראה נשמרה בהצלחה! נעדכן אותך כשמחיר ${currentAsset} יהיה ${criteria === 'ABOVE' ? 'מעל' : 'מתחת'} $${targetPrice.toLocaleString()}`);
+                    document.getElementById('alert_target_price').value = '';
+                } else {
+                    alert("שגיאה בשמירת ההתראה");
+                }
+            } catch (error) {
+                console.error("Error setting alert:", error);
+            }
+        }
+
+        // מנגנון בדיקת התראות שרץ ברקע כל 10 שניות בזמן שהדשבורד פתוח
+        setInterval(async () => {
+            if (!currentUser || !currentAsset) return;
+
+            const priceText = document.getElementById('current_price').innerText;
+            if (priceText === '--') return; // עדיין לא נטען מחיר
+
+            const currentPrice = parseFloat(priceText.replace('$', '').replace(/,/g, ''));
+            if (isNaN(currentPrice)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/alerts/user/${currentUser.id}`);
+                const activeAlerts = await response.json();
+
+                activeAlerts.forEach(alertItem => {
+                    if (alertItem.symbol === currentAsset) {
+                        let isTriggeredNow = false;
+                        if (alertItem.criteria === 'ABOVE' && currentPrice >= alertItem.targetPrice) isTriggeredNow = true;
+                        if (alertItem.criteria === 'BELOW' && currentPrice <= alertItem.targetPrice) isTriggeredNow = true;
+
+                        if (isTriggeredNow) {
+                            alert(`🚨 התראת מחיר חמה! 🚨\nהנכס ${alertItem.symbol} הגיע למחיר של $${currentPrice.toLocaleString()} והפעיל את ההתראה שהגדרת ($${alertItem.targetPrice.toLocaleString()})!`);
+
+                            // קריאה זריזה לשרת כדי לסמן שההתראה הוקפצה ולא תקפוץ שוב בלולאה הבאה
+                            fetch(`${API_BASE}/alerts/trigger/${alertItem.id}`, { method: 'PUT' });
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("שגיאה בבדיקת התראות מול השרת", e);
+            }
+        }, 10000);
+
+        // ==========================================
+        // מנגנון שמירת התחברות (Session Guard)
+        // ==========================================
+        window.onload = function() {
+            const savedUser = localStorage.getItem('smartTradeUser');
+
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                document.getElementById('auth_view').style.display = 'none';
+                document.getElementById('app_layout').style.display = 'flex';
+                switchPage('dashboard');
+                document.getElementById('display_username').innerText = currentUser.username;
+
+                initAiDropdown();
+                initStockDropdown();
+                loadWatchlist();
+                renderDirectory(globalStocks);
+            }
+        };
+
+    </script>
+</body>
+</html>
