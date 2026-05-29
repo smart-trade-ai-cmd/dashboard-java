@@ -28,12 +28,22 @@ public class AlertController {
     @PostMapping("/add")
     public Alert createAlert(@RequestBody Map<String, Object> payload) {
         Long userId = Long.valueOf(payload.get("userId").toString());
-        String symbol = payload.get("symbol").toString();
+        String symbol = payload.get("symbol").toString().toUpperCase();
         Double targetPrice = Double.valueOf(payload.get("targetPrice").toString());
-        String conditionType = payload.get("conditionType").toString(); // ABOVE או BELOW
+        
+        // תיקון 1: קריאת השדה 'criteria' בדיוק כפי שה-Frontend שולח אותו
+        String conditionType = payload.get("criteria").toString(); 
 
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-        Asset asset = assetRepository.findBySymbol(symbol).orElseThrow(() -> new RuntimeException("Asset not found"));
+        
+        // תיקון 2: יצירת המניה אוטומטית אם היא לא קיימת בטבלת assets
+        Asset asset = assetRepository.findBySymbol(symbol).orElse(null);
+        if (asset == null) {
+            asset = new Asset();
+            asset.setSymbol(symbol);
+            asset.setName(symbol);
+            asset = assetRepository.save(asset);
+        }
 
         Alert alert = new Alert();
         alert.setUser(user);
@@ -49,5 +59,16 @@ public class AlertController {
     @GetMapping("/user/{userId}")
     public List<Alert> getActiveAlerts(@PathVariable Long userId) {
         return alertRepository.findByUserId(userId);
+    }
+
+    // תיקון 3: הוספת פונקציה שהייתה חסרה כדי לסמן שההתראה קפצה
+    @PutMapping("/trigger/{alertId}")
+    public org.springframework.http.ResponseEntity<?> triggerAlert(@PathVariable Long alertId) {
+        Alert alert = alertRepository.findById(alertId).orElse(null);
+        if (alert != null) {
+            alert.setTriggered(true);
+            alertRepository.save(alert);
+        }
+        return org.springframework.http.ResponseEntity.ok().build();
     }
 }
