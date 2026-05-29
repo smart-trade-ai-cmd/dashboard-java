@@ -17,7 +17,7 @@ public class AiPredictionService {
     private PredictionHistoryRepository predictionHistoryRepository;
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String AI_SERVER_URL = "https://lstm-pyton-eu.onrender.com/";
+    private final String AI_SERVER_URL = "https://lstm-pyton-eu.onrender.com/api/ai/predict/";
 
     public AiPredictionDto getPredictionForSymbol(String symbol) {
         String url = AI_SERVER_URL + symbol;
