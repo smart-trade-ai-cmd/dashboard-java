@@ -98,6 +98,32 @@
         .stock-card:hover { transform: translateY(-5px); border-color: #ffb300; background-color: #252525;}
         .stock-symbol { font-size: 24px; font-weight: bold; color: #ffb300; margin-bottom: 5px;}
         .stock-name { font-size: 14px; color: #aaa;}
+
+        /* עיצוב לכפתורי רשימת המעקב */
+        .watchlist-btn {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        .watchlist-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+        .watchlist-card {
+            background-color: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-right: 4px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 220px;
+        }
+
     </style>
 </head>
 <body>
@@ -176,9 +202,12 @@
                     <div id="stock_view" style="display: none;">
                         <div class="dashboard-card">
                             <div class="card-header">
-                                <div>
-                                    <h2 id="stock_title" style="color:#ffb300; display: inline-block; margin: 0;">--</h2>
-                                    <span id="stock_full_name" style="color: #888; margin-right: 10px; font-size: 16px;"></span>
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div>
+                                        <h2 id="stock_title" style="color:#ffb300; display: inline-block; margin: 0;">--</h2>
+                                        <span id="stock_full_name" style="color: #888; margin-right: 10px; font-size: 16px;"></span>
+                                    </div>
+                                    <button id="add_stock_to_watchlist_btn" class="primary-btn" style="width:auto; padding:8px 15px; display:none; background-color:#ffb300; color:#121212;" onclick="addCurrentToWatchlist()">הוסף לרשימת המעקב +</button>
                                 </div>
                                 <span style="background-color:rgba(255,179,0,0.2); color:#ffb300; padding:5px 10px; border-radius:5px; font-size:12px;">🔴 נתונים זמניים</span>
                             </div>
@@ -263,7 +292,7 @@
 </div>
 
 <script>
-        const API_BASE = "https://backend-vojg.onrender.com/api";
+        const API_BASE = "https://dashboard-trade-java.onrender.com/api";
         let isLoginMode = true;
         let currentUser = null;
         let currentAsset = null;
@@ -413,7 +442,8 @@
         }
 
         async function fetchLiveStock(symbol, name = "") {
-            currentAsset = symbol; // <--- הוסף את השורה הזו!
+            currentAsset = symbol;
+            updateAddButtonVisibility();
 
             document.getElementById('live_stock_input').value = symbol;
             document.getElementById('welcome_card').style.display = 'none';
@@ -554,8 +584,14 @@
         }
 
         function updateAddButtonVisibility() {
-            const addBtn = document.getElementById('add_to_watchlist_btn');
-            addBtn.style.display = (currentAsset && !userWatchlistSymbols.includes(currentAsset)) ? 'block' : 'none';
+            const addAiBtn = document.getElementById('add_to_watchlist_btn');
+            const addStockBtn = document.getElementById('add_stock_to_watchlist_btn');
+
+            // בדיקה אם הנכס הנוכחי לא נמצא ברשימת המעקב של המשתמש
+            const isNotInWatchlist = (currentAsset && !userWatchlistSymbols.includes(currentAsset));
+
+            if(addAiBtn) addAiBtn.style.display = isNotInWatchlist ? 'block' : 'none';
+            if(addStockBtn) addStockBtn.style.display = isNotInWatchlist ? 'block' : 'none';
         }
 
         async function loadAiHistory() {
@@ -796,6 +832,59 @@
                 renderDirectory(globalStocks);
             }
         };
+
+        // ==========================================
+        // מערכת רשימת מעקב (Watchlist)
+        // ==========================================
+        let myWatchlist = [];
+
+        function addToWatchlist(symbol) {
+            // בדיקה אם המשתמש מחובר (אופציונלי - כרגע פתוח לכולם)
+            /* if(!currentUser) { alert("יש להתחבר כדי להוסיף לרשימת המעקב"); return; } */
+
+            if(myWatchlist.includes(symbol)) {
+                alert(symbol + " כבר נמצא ברשימת המעקב שלך!");
+                return;
+            }
+
+            myWatchlist.push(symbol);
+            renderWatchlist();
+        }
+
+        function removeFromWatchlist(symbol) {
+            myWatchlist = myWatchlist.filter(item => item !== symbol);
+            renderWatchlist();
+        }
+
+        function renderWatchlist() {
+            const container = document.getElementById('watchlist-container');
+
+            if(myWatchlist.length === 0) {
+                container.innerHTML = '<p id="empty-watchlist-msg" style="color: var(--text-secondary);">הרשימה ריקה. הוסף מניות מהדשבורד!</p>';
+                return;
+            }
+
+            // ניקוי הקונטיינר לפני ציור מחדש
+            container.innerHTML = '';
+
+            myWatchlist.forEach(symbol => {
+                // משיכת המחיר והתחזית הנוכחיים מהכרטיסיות הראשיות (כדי שיוצגו ב-Real-Time גם במעקב)
+                const currentPrice = document.getElementById(`${symbol.toLowerCase()}-price`).innerText;
+                const currentPrediction = document.getElementById(`${symbol.toLowerCase()}-prediction`).innerText;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'watchlist-card';
+                itemDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin:0; font-size: 1.2em;">${symbol}</h3>
+                        <button class="watchlist-btn" style="border-color: #ff4444; color: #ff4444; padding: 2px 8px;" onclick="removeFromWatchlist('${symbol}')">הסר</button>
+                    </div>
+                    <div style="font-size: 1.3em; font-weight: bold; margin-bottom: 5px;">${currentPrice}</div>
+                    <div style="font-size: 0.9em; color: var(--primary-color);">תחזית AI: ${currentPrediction}</div>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
 
     </script>
 </body>
