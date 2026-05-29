@@ -24,13 +24,20 @@ public class WatchlistService {
     @Autowired
     private AssetRepository assetRepository;
 
-    // הוספת מטבע לרשימת המעקב של משתמש ספציפי
+    // הוספת מטבע/מניה לרשימת המעקב של משתמש ספציפי
     public Watchlist addAssetToWatchlist(Long userId, String symbol) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Asset asset = assetRepository.findBySymbol(symbol.toUpperCase())
-                .orElseThrow(() -> new RuntimeException("Asset not found"));
+        // *** התיקון החכם: מחפשים את הנכס, ואם הוא לא קיים - יוצרים אותו אוטומטית! ***
+        Asset asset = assetRepository.findBySymbol(symbol.toUpperCase()).orElse(null);
+        
+        if (asset == null) {
+            asset = new Asset();
+            asset.setSymbol(symbol.toUpperCase());
+            asset.setName(symbol.toUpperCase()); // נותן למניה שם ראשוני זהה לסימול
+            asset = assetRepository.save(asset); // שומר את המניה החדשה במסד הנתונים
+        }
 
         // מניעת כפילויות - שלא יהיה ניתן להוסיף את אותו המטבע לאותו המשתמש
         if (watchlistRepository.existsByUserIdAndAssetId(userId, asset.getId())) {
@@ -55,8 +62,11 @@ public class WatchlistService {
     }
 
     public void removeAssetFromWatchlist(Long userId, String symbol) {
-        Asset asset = assetRepository.findBySymbol(symbol.toUpperCase())
-                .orElseThrow(() -> new RuntimeException("Asset not found"));
-        watchlistRepository.deleteByUserIdAndAssetId(userId, asset.getId());
+        // *** תיקון למניעת קריסה: הסרה תתבצע רק אם המניה באמת קיימת במסד הנתונים ***
+        Asset asset = assetRepository.findBySymbol(symbol.toUpperCase()).orElse(null);
+        
+        if (asset != null) {
+            watchlistRepository.deleteByUserIdAndAssetId(userId, asset.getId());
+        }
     }
 }
