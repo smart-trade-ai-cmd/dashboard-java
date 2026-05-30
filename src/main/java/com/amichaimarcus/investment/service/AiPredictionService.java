@@ -19,8 +19,9 @@ public class AiPredictionService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final String AI_SERVER_URL = "https://lstm-pyton-eu.onrender.com/api/ai/predict/";
 
-    public AiPredictionDto getPredictionForSymbol(String symbol) {
-        String url = AI_SERVER_URL + symbol;
+    // הוספנו את ה-timeframe לסוגריים כדי שהפונקציה תכיר אותו!
+    public AiPredictionDto getPredictionForSymbol(String symbol, String timeframe) {
+        String url = AI_SERVER_URL + symbol + "?timeframe=" + timeframe;
         AiPredictionDto dto = restTemplate.getForObject(url, AiPredictionDto.class);
 
         // אם התקבלה תחזית תקינה משרת ה-AI, נשמור אותה בהיסטוריה
@@ -36,7 +37,7 @@ public class AiPredictionService {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             history.setPredictionTime(LocalDateTime.parse(dto.getTimestamp(), formatter));
 
-            // הגדרת סטטוס ראשוני כ-PENDING (ממתין להכרעה) כדי ששירות הסנכרון יטפל ברשומה
+            // הגדרת סטטוס ראשוני כ-PENDING
             history.setStatus("PENDING");
 
             // שמירה ל-MySQL
