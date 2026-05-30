@@ -189,8 +189,11 @@
 
             <div class="workspace">
                 <div class="sidebar">
-                    <h3 style="margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px;">רשימת המעקב (AI)</h3>
-                    <div id="watchlist_items" style="color: #888; font-size: 14px;">טוען רשימה...</div>
+                    <h3 style="margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #4da6ff;">🤖 נכסי AI (קריפטו)</h3>
+                    <div id="watchlist_items_ai" style="color: #888; font-size: 14px; margin-bottom: 30px;">טוען...</div>
+
+                    <h3 style="margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #ffb300;">📈 מניות גלובליות</h3>
+                    <div id="watchlist_items_stocks" style="color: #888; font-size: 14px;">טוען...</div>
                 </div>
 
                 <div class="main-content">
@@ -240,6 +243,13 @@
                                 <div class="data-box" id="box_predicted_price" style="display: none;">תחזית AI<br><strong id="predicted_price" style="font-size:24px;">--</strong></div>
                                 <div class="data-box" id="box_recommended_action" style="display: none;">המלצה<br><strong id="recommended_action" style="font-size:24px;">--</strong></div>
                             </div>
+                            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                                <span style="color: #aaa; font-size: 14px;">בחר טווח זמן לחיזוי ולגרף:</span>
+                                <select id="prediction_timeframe" style="padding: 8px; border-radius: 5px; background-color: #2a2a2a; color: white; border: 1px solid #444;" onchange="loadAiHistory()">
+                                    <option value="1d">24 שעות קדימה (1D)</option>
+                                    <option value="4h">4 שעות קדימה (4H)</option>
+                                </select>
+                            </div>
                             <button id="btn_generate" class="primary-btn" style="width:auto; padding:10px 30px;" onclick="generatePrediction()">הפעל חיזוי AI 🚀</button>
 
                             <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #333; text-align: right;">
@@ -270,7 +280,15 @@
                         <div class="dashboard-card" id="history_card">
                             <h3 style="text-align:right; margin-top:0; color:#aaa;">היסטוריית תחזיות (MySQL)</h3>
                             <table>
-                                <thead><tr><th>זמן</th><th>מחיר כניסה</th><th>מחיר חזוי</th><th>כיוון</th><th>סטטוס</th></tr></thead>
+                                <thead>
+                                <tr>
+                                    <th>זמן</th>
+                                    <th>טווח</th> <th>מחיר כניסה</th>
+                                    <th>מחיר חזוי</th>
+                                    <th>כיוון</th>
+                                    <th>סטטוס</th>
+                                </tr>
+                                </thead>
                                 <tbody id="history_table_body"></tbody>
                             </table>
                         </div>
@@ -538,22 +556,68 @@
         }
 
         async function loadWatchlist() {
-            const response = await fetch(`${API_BASE}/watchlist/${currentUser.id}`);
-            const assets = await response.json();
-            const listDiv = document.getElementById('watchlist_items');
-            listDiv.innerHTML = '';
-            userWatchlistSymbols = assets.map(a => a.symbol.toUpperCase());
+            try {
+                const response = await fetch(`${API_BASE}/watchlist/${currentUser.id}`);
+                const assets = await response.json();
 
-            if(assets.length === 0) { listDiv.innerHTML = "הרשימה ריקה."; }
-            else {
-                assets.forEach(asset => {
-                    const item = document.createElement('div');
-                    item.className = 'watchlist-item';
-                    item.innerHTML = `<strong onclick="openAiAssetView('${asset.symbol}')">${asset.symbol}</strong><button class="delete-btn" onclick="deleteAsset('${asset.symbol}', event)">✖</button>`;
-                    listDiv.appendChild(item);
-                });
+                const listAiDiv = document.getElementById('watchlist_items_ai');
+                const listStocksDiv = document.getElementById('watchlist_items_stocks');
+
+                listAiDiv.innerHTML = '';
+                listStocksDiv.innerHTML = '';
+                userWatchlistSymbols = assets.map(a => a.symbol.toUpperCase());
+
+                if(assets.length === 0) {
+                    listAiDiv.innerHTML = "הרשימה ריקה.";
+                    listStocksDiv.innerHTML = "הרשימה ריקה.";
+                } else {
+                    let aiCount = 0;
+                    let stockCount = 0;
+
+                    assets.forEach(asset => {
+                        const symbol = asset.symbol.toUpperCase();
+                        const isAiAsset = availableAiAssets.some(a => a.code === symbol);
+
+                        const item = document.createElement('div');
+                        item.className = 'watchlist-item';
+
+                        // קריאה לפונקציית הניתוב שבנינו קודם (handleWatchlistClick)
+                        item.innerHTML = `<strong onclick="handleWatchlistClick('${symbol}')">${symbol}</strong>
+                                          <button class="delete-btn" onclick="deleteAsset('${symbol}', event)">✖</button>`;
+
+                        if (isAiAsset) {
+                            listAiDiv.appendChild(item);
+                            aiCount++;
+                        } else {
+                            listStocksDiv.appendChild(item);
+                            stockCount++;
+                        }
+                    });
+
+                    // הודעות במקרה שאחת הרשימות ספציפית ריקה
+                    if(aiCount === 0) listAiDiv.innerHTML = "אין נכסי AI במעקב.";
+                    if(stockCount === 0) listStocksDiv.innerHTML = "אין מניות במעקב.";
+                }
+                updateAddButtonVisibility();
+            } catch (err) {
+                console.error("שגיאה בטעינת רשימת המעקב", err);
             }
-            updateAddButtonVisibility();
+        }
+
+        // פונקציה שמחליטה לאיזה מסך לנווט לפי סוג הנכס (קריפטו או מניה)
+        function handleWatchlistClick(symbol) {
+            const isAiAsset = availableAiAssets.some(asset => asset.code === symbol.toUpperCase());
+
+            if (isAiAsset) {
+                // קריפטו -> מסך AI
+                openAiAssetView(symbol);
+            } else {
+                // מניה -> מסך Alpha Vantage
+                const foundStock = globalStocks.find(s => s.symbol === symbol.toUpperCase());
+                const stockName = foundStock ? foundStock.name : "Stock Asset";
+                switchPage('dashboard');
+                fetchLiveStock(symbol, stockName);
+            }
         }
 
         async function addCurrentToWatchlist() {
@@ -600,7 +664,8 @@
 
             try {
                 const binanceSymbol = currentAsset.toUpperCase() + "USDT";
-                const binanceUrl = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=1d&limit=60`;
+                const timeframe = document.getElementById('prediction_timeframe') ? document.getElementById('prediction_timeframe').value : '1d';
+                const binanceUrl = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${timeframe}&limit=60`;
 
                 const res = await fetch(binanceUrl);
                 const data = await res.json();
@@ -658,7 +723,16 @@
                     let statusHebrew = row.status === 'CORRECT' ? '🎯 צדק' : (row.status === 'WRONG' ? '❌ טעה' : 'בהמתנה');
                     let dirText = row.trend === 'UP' ? 'BUY ⬆' : 'SELL ⬇';
                     let dirColor = row.trend === 'UP' ? '#00e676' : '#ff5252';
-                    tr.innerHTML = `<td>${row.predictionTime.replace('T', ' ').substring(5,16)}</td><td>$${row.currentPrice}</td><td>$${row.predictedPrice}</td><td style="color:${dirColor}; font-weight:bold;">${dirText}</td><td><span class="status-badge status-${row.status}">${statusHebrew}</span></td>`;
+
+                    // בדיקה למניעת ערך ריק עבור שורות ישנות במסד הנתונים
+                    let timeframeText = row.timeframe ? row.timeframe.toUpperCase() : '4H';
+
+                    tr.innerHTML = `<td>${row.predictionTime.replace('T', ' ').substring(5,16)}</td>
+                                    <td style="color:#ffb300; font-weight:bold;">${timeframeText}</td>
+                                    <td>$${row.currentPrice}</td>
+                                    <td>$${row.predictedPrice}</td>
+                                    <td style="color:${dirColor}; font-weight:bold;">${dirText}</td>
+                                    <td><span class="status-badge status-${row.status}">${statusHebrew}</span></td>`;
                     tbody.appendChild(tr);
                 });
             } catch(e) { console.error("שגיאה במשיכת MySQL", e); }
@@ -700,10 +774,12 @@
 
         async function generatePrediction() {
             if(!currentAsset) return;
+            const timeframe = document.getElementById('prediction_timeframe').value;
             const btn = document.getElementById('btn_generate');
             btn.innerText = "מפעיל מודל, אנא המתן..."; btn.disabled = true;
             try {
-                await fetch(`${API_BASE}/predictions/${currentAsset.toLowerCase()}`);
+                // הוספנו את ה-timeframe בסוף שורת הבקשה ל-Java
+                await fetch(`${API_BASE}/predictions/${currentAsset.toLowerCase()}?timeframe=${timeframe}`);
                 await loadAiHistory();
                 document.getElementById('box_predicted_price').style.display = 'block';
                 document.getElementById('box_recommended_action').style.display = 'block';
