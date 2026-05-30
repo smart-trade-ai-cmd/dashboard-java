@@ -32,6 +32,8 @@ public class AiPredictionService {
             history.setPredictedPrice(dto.getPredicted_next_close());
             history.setTrend(dto.getPredicted_trend());
             history.setRecommendedAction(dto.getRecommended_action());
+            // שמירת טווח הזמן בהיסטוריה (הופך אותו לאותיות גדולות, למשל 4H)
+            history.setTimeframe(timeframe.toUpperCase());
 
             // המרת מחרוזת הזמן מפייתון ל-LocalDateTime של Java
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
