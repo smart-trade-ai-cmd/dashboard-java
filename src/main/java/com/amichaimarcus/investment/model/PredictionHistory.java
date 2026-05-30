@@ -39,4 +39,7 @@ public class PredictionHistory {
 
     @Column(nullable = false) // יתחיל כ-"PENDING" ויהפוך ל-"CORRECT"/"WRONG" בהמשך
     private String status = "PENDING";
+
+    @Column(name = "timeframe")
+    private String timeframe; // ישמור ערכים כמו 4H או 1D
 }
