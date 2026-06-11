@@ -158,7 +158,7 @@
 
         <div class="top-bar">
             <div style="display: flex; align-items: center; gap: 30px;">
-                <div style="font-size: 18px;">שלום, <span id="display_username" style="color:#4da6ff; font-weight:bold;"></span> 👋</div>
+                <div style="font-size: 18px;">שלום, <span id="display_username" style="color:#4da6ff; font-weight:bold;"></span> </div>
                 <div class="nav-buttons">
                     <button id="nav_dashboard" class="nav-btn active" onclick="switchPage('dashboard')">דשבורד ראשי</button>
                     <button id="nav_directory" class="nav-btn" onclick="switchPage('directory')">ספריית מניות (A-Z)</button>
@@ -179,7 +179,7 @@
                 </div>
 
                 <div class="search-box ai-search">
-                    <h3 style="margin:0 0 5px 0; color:#4da6ff;">חיפוש נכסי AI (MySQL)</h3>
+                    <h3 style="margin:0 0 5px 0; color:#4da6ff;">חיפוש נכסי AI </h3>
                     <div class="search-input-group">
                         <input type="text" id="ai_asset_input" placeholder="לדוגמה: BTC, ETH" onfocus="toggleAiDropdown(true)" oninput="filterAiDropdown()">
                         <div id="ai_dropdown_list" class="dropdown-list"></div>
@@ -189,10 +189,10 @@
 
             <div class="workspace">
                 <div class="sidebar">
-                    <h3 style="margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #4da6ff;">🤖 נכסי AI (קריפטו)</h3>
+                    <h3 style="margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #4da6ff;">נחסי AI</h3>
                     <div id="watchlist_items_ai" style="color: #888; font-size: 14px; margin-bottom: 30px;">טוען...</div>
 
-                    <h3 style="margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #ffb300;">📈 מניות גלובליות</h3>
+                    <h3 style="margin-top:0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #ffb300;">מניות גלובליות</h3>
                     <div id="watchlist_items_stocks" style="color: #888; font-size: 14px;">טוען...</div>
                 </div>
 
@@ -250,10 +250,10 @@
                                     <option value="4h">4 שעות קדימה (4H)</option>
                                 </select>
                             </div>
-                            <button id="btn_generate" class="primary-btn" style="width:auto; padding:10px 30px;" onclick="generatePrediction()">הפעל חיזוי AI 🚀</button>
+                            <button id="btn_generate" class="primary-btn" style="width:auto; padding:10px 30px;" onclick="generatePrediction()">הפעל חיזוי AI </button>
 
                             <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #333; text-align: right;">
-                                <h4 style="margin: 0 0 10px 0; color: #4da6ff;">🔔 הגדרת התראת מחיר חכמה</h4>
+                                <h4 style="margin: 0 0 10px 0; color: #4da6ff;"> הגדרת התראת מחיר חכמה</h4>
                                 <div style="display: flex; gap: 10px; align-items: center;">
                                     <span style="font-size: 14px; color: #aaa;">התרע לי כאשר המחיר הוא</span>
                                     <select id="alert_criteria" style="padding: 8px; border-radius: 5px; background-color: #2a2a2a; color: white; border: 1px solid #444;">
